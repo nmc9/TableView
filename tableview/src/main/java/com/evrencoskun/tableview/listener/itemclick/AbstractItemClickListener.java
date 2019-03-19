@@ -42,24 +42,41 @@ public abstract class AbstractItemClickListener implements RecyclerView.OnItemTo
         this.mTableView = tableView;
         this.mSelectionHandler = tableView.getSelectionHandler();
 
-        mGestureDetector = new GestureDetector(mRecyclerView.getContext(), new
-                GestureDetector.SimpleOnGestureListener() {
+        mGestureDetector = new GestureDetector(mRecyclerView.getContext(), new GestureDetector
+                .SimpleOnGestureListener() {
+
+            MotionEvent start;
+
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
                 return true;
             }
 
             @Override
+            public boolean onSingleTapConfirmed(MotionEvent e) {
+                return clickAction(mRecyclerView, e);
+            }
+
+            @Override
+            public boolean onDown(MotionEvent e) {
+                start = e;
+                return false;
+            }
+
+            @Override
             public void onLongPress(MotionEvent e) {
-                //TODO: long press implementation should have done.
-                longPressAction(e);
+                // Check distance to prevent scroll to trigger the event
+                if (start != null && Math.abs(start.getRawX() - e.getRawX()) < 20 && Math.abs
+                        (start.getRawY() - e.getRawY()) < 20) {
+                    longPressAction(e);
+                }
             }
         });
     }
 
     @Override
     public boolean onInterceptTouchEvent(RecyclerView view, MotionEvent e) {
-        return clickAction(view, e);
+        return mGestureDetector.onTouchEvent(e);
     }
 
     @Override

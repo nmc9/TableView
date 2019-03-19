@@ -19,6 +19,7 @@ package com.evrencoskun.tableview.adapter;
 
 import android.content.Context;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import com.evrencoskun.tableview.ITableView;
@@ -54,6 +55,10 @@ public abstract class AbstractTableAdapter<CH, RH, C> implements ITableAdapter {
 
     public AbstractTableAdapter(Context context) {
         mContext = context;
+    }
+
+    public void setTableView(TableView tableView) {
+        mTableView = tableView;
         initialize();
     }
 
@@ -67,7 +72,7 @@ public abstract class AbstractTableAdapter<CH, RH, C> implements ITableAdapter {
                 mRowHeaderItems, this);
 
         // Create Cell RecyclerView Adapter
-        mCellRecyclerViewAdapter = new CellRecyclerViewAdapter(mContext, mCellItems, this);
+        mCellRecyclerViewAdapter = new CellRecyclerViewAdapter(mContext, mCellItems, mTableView);
     }
 
     public void setColumnHeaderItems(List<CH> columnHeaderItems) {
@@ -76,7 +81,9 @@ public abstract class AbstractTableAdapter<CH, RH, C> implements ITableAdapter {
         }
 
         mColumnHeaderItems = columnHeaderItems;
-
+        // Invalidate the cached widths for letting the view measure the cells width
+        // from scratch.
+        mTableView.getColumnHeaderLayoutManager().clearCachedWidths();
         // Set the items to the adapter
         mColumnHeaderRecyclerViewAdapter.setItems(mColumnHeaderItems);
         dispatchColumnHeaderDataSetChangesToListeners(columnHeaderItems);
@@ -100,7 +107,9 @@ public abstract class AbstractTableAdapter<CH, RH, C> implements ITableAdapter {
         }
 
         mCellItems = cellItems;
-
+        // Invalidate the cached widths for letting the view measure the cells width
+        // from scratch.
+        mTableView.getCellLayoutManager().clearCachedWidths();
         // Set the items to the adapter
         mCellRecyclerViewAdapter.setItems(mCellItems);
         dispatchCellDataSetChangesToListeners(mCellItems);
@@ -126,13 +135,16 @@ public abstract class AbstractTableAdapter<CH, RH, C> implements ITableAdapter {
 
             // Change corner view visibility
             if (rowHeaderItems != null && !rowHeaderItems.isEmpty()) {
-                mCornerView.setVisibility(View.GONE);
-            } else {
                 mCornerView.setVisibility(View.VISIBLE);
+            } else {
+                mCornerView.setVisibility(View.GONE);
             }
         }
     }
 
+    public View getCornerView() {
+        return mCornerView;
+    }
 
     public ColumnHeaderRecyclerViewAdapter getColumnHeaderRecyclerViewAdapter() {
         return mColumnHeaderRecyclerViewAdapter;
@@ -148,6 +160,11 @@ public abstract class AbstractTableAdapter<CH, RH, C> implements ITableAdapter {
 
     public void setRowHeaderWidth(int rowHeaderWidth) {
         this.mRowHeaderWidth = rowHeaderWidth;
+
+        if (mCornerView != null) {
+            ViewGroup.LayoutParams layoutParams = mCornerView.getLayoutParams();
+            layoutParams.width = rowHeaderWidth;
+        }
     }
 
     public void setColumnHeaderHeight(int columnHeaderHeight) {
@@ -189,8 +206,39 @@ public abstract class AbstractTableAdapter<CH, RH, C> implements ITableAdapter {
         mRowHeaderRecyclerViewAdapter.deleteItem(rowPosition);
     }
 
+    public void removeRow(int rowPosition, boolean updateRowHeader) {
+        mCellRecyclerViewAdapter.deleteItem(rowPosition);
+
+        // To be able update the row header data
+        if (updateRowHeader) {
+            rowPosition = mRowHeaderRecyclerViewAdapter.getItemCount() - 1;
+
+            // Cell RecyclerView items should be notified.
+            // Because, other items stores the old row position.
+            mCellRecyclerViewAdapter.notifyDataSetChanged();
+        }
+
+        mRowHeaderRecyclerViewAdapter.deleteItem(rowPosition);
+
+    }
+
     public void removeRowRange(int rowPositionStart, int itemCount) {
         mCellRecyclerViewAdapter.deleteItemRange(rowPositionStart, itemCount);
+        mRowHeaderRecyclerViewAdapter.deleteItemRange(rowPositionStart, itemCount);
+    }
+
+    public void removeRowRange(int rowPositionStart, int itemCount, boolean updateRowHeader) {
+        mCellRecyclerViewAdapter.deleteItemRange(rowPositionStart, itemCount);
+
+        // To be able update the row header data sets
+        if (updateRowHeader) {
+            rowPositionStart = mRowHeaderRecyclerViewAdapter.getItemCount() - 1 - itemCount;
+
+            // Cell RecyclerView items should be notified.
+            // Because, other items stores the old row position.
+            mCellRecyclerViewAdapter.notifyDataSetChanged();
+        }
+
         mRowHeaderRecyclerViewAdapter.deleteItemRange(rowPositionStart, itemCount);
     }
 
@@ -251,10 +299,6 @@ public abstract class AbstractTableAdapter<CH, RH, C> implements ITableAdapter {
         mColumnHeaderRecyclerViewAdapter.notifyDataSetChanged();
         mRowHeaderRecyclerViewAdapter.notifyDataSetChanged();
         mCellRecyclerViewAdapter.notifyCellDataSetChanged();
-    }
-
-    public void setTableView(TableView tableView) {
-        mTableView = tableView;
     }
 
     @Override

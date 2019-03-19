@@ -52,8 +52,24 @@ public class TableViewListener implements ITableViewListener {
      */
     @Override
     public void onCellClicked(@NonNull RecyclerView.ViewHolder cellView, int column, int row) {
+
         // Do what you want.
         showToast("Cell " + column + " " + row + " has been clicked.");
+
+    }
+
+    /**
+     * Called when user long press any cell item.
+     *
+     * @param cellView : Long Pressed Cell ViewHolder.
+     * @param column   : X (Column) position of Long Pressed Cell item.
+     * @param row      : Y (Row) position of Long Pressed Cell item.
+     */
+    @Override
+    public void onCellLongPressed(@NonNull RecyclerView.ViewHolder cellView, final int column,
+                                  int row) {
+        // Do What you want
+        showToast("Cell " + column + " " + row + " has been long pressed.");
     }
 
     /**
@@ -69,6 +85,12 @@ public class TableViewListener implements ITableViewListener {
         showToast("Column header  " + column + " has been clicked.");
     }
 
+    /**
+     * Called when user long press any column header item.
+     *
+     * @param columnHeaderView : Long Pressed Column Header ViewHolder.
+     * @param column           : X (Column) position of Long Pressed Column Header item.
+     */
     @Override
     public void onColumnHeaderLongPressed(@NonNull RecyclerView.ViewHolder columnHeaderView, int
             column) {
@@ -96,6 +118,12 @@ public class TableViewListener implements ITableViewListener {
         showToast("Row header " + row + " has been clicked.");
     }
 
+    /**
+     * Called when user long press any row header item.
+     *
+     * @param rowHeaderView : Long Pressed Row Header ViewHolder.
+     * @param row           : Y (Row) position of Long Pressed Row Header item.
+     */
     @Override
     public void onRowHeaderLongPressed(@NonNull RecyclerView.ViewHolder rowHeaderView, int row) {
 

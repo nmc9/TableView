@@ -15,21 +15,24 @@
  *
  */
 
-package com.evrencoskun.tableviewsample;
+package com.evrencoskun.tableview.sort;
 
-import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+public abstract class ColumnSortStateChangedListener {
 
-public class MainActivity extends AppCompatActivity {
+    /**
+     * Dispatches sorting changes on a column to listeners.
+     *
+     * @param column    Column to be sorted.
+     * @param sortState SortState of the column to be sorted.
+     */
+    public void onColumnSortStatusChanged(int column, SortState sortState) {
+    }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction().add(R.id.activity_container, new
-                    MainFragment(), MainFragment.class.getSimpleName()).commit();
-        }
+    /**
+     * Dispatches sorting changes to the row header column to listeners.
+     *
+     * @param sortState SortState of the row header column.
+     */
+    public void onRowHeaderSortStatusChanged(SortState sortState) {
     }
 }

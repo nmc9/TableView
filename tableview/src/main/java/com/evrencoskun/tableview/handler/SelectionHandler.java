@@ -17,10 +17,14 @@
 
 package com.evrencoskun.tableview.handler;
 
+import android.support.annotation.ColorInt;
+import android.support.v7.widget.LinearLayoutManager;
+
 import com.evrencoskun.tableview.ITableView;
 import com.evrencoskun.tableview.adapter.recyclerview.CellRecyclerView;
 import com.evrencoskun.tableview.adapter.recyclerview.holder.AbstractViewHolder;
 import com.evrencoskun.tableview.adapter.recyclerview.holder.AbstractViewHolder.SelectionState;
+import com.evrencoskun.tableview.layoutmanager.CellLayoutManager;
 
 /**
  * Created by evrencoskun on 24/10/2017.
@@ -32,16 +36,28 @@ public class SelectionHandler {
     private int mSelectedRowPosition = UNSELECTED_POSITION;
     private int mSelectedColumnPosition = UNSELECTED_POSITION;
 
+    private boolean shadowEnabled = true;
+
 
     private ITableView mTableView;
     private AbstractViewHolder mPreviousSelectedViewHolder;
     private CellRecyclerView mColumnHeaderRecyclerView;
     private CellRecyclerView mRowHeaderRecyclerView;
+    private CellLayoutManager mCellLayoutManager;
 
     public SelectionHandler(ITableView tableView) {
         this.mTableView = tableView;
         this.mColumnHeaderRecyclerView = mTableView.getColumnHeaderRecyclerView();
         this.mRowHeaderRecyclerView = mTableView.getRowHeaderRecyclerView();
+        this.mCellLayoutManager = mTableView.getCellLayoutManager();
+    }
+
+    public boolean isShadowEnabled() {
+        return shadowEnabled;
+    }
+
+    public void setShadowEnabled(boolean shadowEnabled) {
+        this.shadowEnabled = shadowEnabled;
     }
 
     public void setSelectedCellPositions(AbstractViewHolder selectedViewHolder, int column, int
@@ -51,7 +67,9 @@ public class SelectionHandler {
         this.mSelectedColumnPosition = column;
         this.mSelectedRowPosition = row;
 
-        selectedCellView();
+        if (shadowEnabled) {
+            selectedCellView();
+        }
     }
 
 
@@ -96,7 +114,7 @@ public class SelectionHandler {
             mPreviousSelectedViewHolder.setSelected(SelectionState.UNSELECTED);
         }
 
-        AbstractViewHolder oldViewHolder = mTableView.getCellLayoutManager().getCellViewHolder
+        AbstractViewHolder oldViewHolder = mCellLayoutManager.getCellViewHolder
                 (getSelectedColumnPosition(), getSelectedRowPosition());
 
         if (oldViewHolder != null) {
@@ -131,16 +149,18 @@ public class SelectionHandler {
         changeVisibleCellViewsBackgroundForRow(mSelectedRowPosition, true);
 
         // Change background color of the column headers to be shown as a shadow.
-        mTableView.getColumnHeaderRecyclerView().setSelected(SelectionState.SHADOWED, mTableView
-                .getShadowColor(), false);
+        if (shadowEnabled) {
+            changeSelectionOfRecyclerView(mColumnHeaderRecyclerView, SelectionState.SHADOWED,
+                    mTableView.getShadowColor());
+        }
     }
 
     private void unselectedRowHeader() {
         changeVisibleCellViewsBackgroundForRow(mSelectedRowPosition, false);
 
         // Change background color of the column headers to be shown as a normal.
-        mTableView.getColumnHeaderRecyclerView().setSelected(SelectionState.UNSELECTED,
-                mTableView.getUnSelectedColor(), false);
+        changeSelectionOfRecyclerView(mColumnHeaderRecyclerView, SelectionState.UNSELECTED,
+                mTableView.getUnSelectedColor());
     }
 
     private void selectedCellView() {
@@ -206,16 +226,15 @@ public class SelectionHandler {
     private void selectedColumnHeader() {
         changeVisibleCellViewsBackgroundForColumn(mSelectedColumnPosition, true);
 
-        mTableView.getRowHeaderRecyclerView().setSelected(SelectionState.SHADOWED, mTableView
-                .getShadowColor(), false);
-
+        changeSelectionOfRecyclerView(mRowHeaderRecyclerView, SelectionState.SHADOWED, mTableView
+                .getShadowColor());
     }
 
     private void unselectedColumnHeader() {
         changeVisibleCellViewsBackgroundForColumn(mSelectedColumnPosition, false);
 
-        mTableView.getRowHeaderRecyclerView().setSelected(SelectionState.UNSELECTED, mTableView
-                .getUnSelectedColor(), false);
+        changeSelectionOfRecyclerView(mRowHeaderRecyclerView, SelectionState.UNSELECTED,
+                mTableView.getUnSelectedColor());
     }
 
     public boolean isCellSelected(int column, int row) {
@@ -284,44 +303,57 @@ public class SelectionHandler {
     }
 
     private void changeVisibleCellViewsBackgroundForRow(int row, boolean isSelected) {
-        int selectedColor = mTableView.getSelectedColor();
-        int unSelectedColor = mTableView.getUnSelectedColor();
+        int backgroundColor = mTableView.getUnSelectedColor();
+        SelectionState selectionState = SelectionState.UNSELECTED;
 
-        CellRecyclerView recyclerView = (CellRecyclerView) mTableView.getCellLayoutManager()
-                .findViewByPosition(row);
+        if (isSelected) {
+            backgroundColor = mTableView.getSelectedColor();
+            selectionState = SelectionState.SELECTED;
+        }
+
+        CellRecyclerView recyclerView = (CellRecyclerView) mCellLayoutManager.findViewByPosition
+                (row);
 
         if (recyclerView == null) {
             return;
         }
 
-        recyclerView.setSelected(isSelected ? SelectionState.SELECTED : SelectionState
-                .UNSELECTED, isSelected ? selectedColor : unSelectedColor, false);
+        changeSelectionOfRecyclerView(recyclerView, selectionState, backgroundColor);
     }
 
     private void changeVisibleCellViewsBackgroundForColumn(int column, boolean isSelected) {
-        int selectedColor = mTableView.getSelectedColor();
-        int unSelectedColor = mTableView.getUnSelectedColor();
+        int backgroundColor = mTableView.getUnSelectedColor();
+        SelectionState selectionState = SelectionState.UNSELECTED;
 
-        AbstractViewHolder[] visibleCellViews = mTableView.getCellLayoutManager()
-                .getVisibleCellViewsByColumnPosition(column);
+        if (isSelected) {
+            backgroundColor = mTableView.getSelectedColor();
+            selectionState = SelectionState.SELECTED;
+        }
 
-        if (visibleCellViews != null) {
-            for (AbstractViewHolder viewHolder : visibleCellViews) {
-                if (viewHolder != null) {
-                    // Get each view container of the cell view and set unselected color.
-                    viewHolder.setBackgroundColor(isSelected ? selectedColor : unSelectedColor);
 
-                    // Change selection status of the view holder
-                    viewHolder.setSelected(isSelected ? SelectionState.SELECTED : SelectionState
-                            .UNSELECTED);
-                }
+        // Get visible Cell ViewHolders by Column Position
+        for (int i = mCellLayoutManager.findFirstVisibleItemPosition(); i < mCellLayoutManager
+                .findLastVisibleItemPosition() + 1; i++) {
+
+            CellRecyclerView cellRowRecyclerView = (CellRecyclerView) mCellLayoutManager
+                    .findViewByPosition(i);
+
+            AbstractViewHolder holder = (AbstractViewHolder) cellRowRecyclerView
+                    .findViewHolderForAdapterPosition(column);
+
+            if (holder != null) {
+                // Get each view container of the cell view and set unselected color.
+                holder.setBackgroundColor(backgroundColor);
+
+                // Change selection status of the view holder
+                holder.setSelected(selectionState);
             }
         }
     }
 
     public void changeRowBackgroundColorBySelectionStatus(AbstractViewHolder viewHolder,
                                                           SelectionState selectionState) {
-        if (selectionState == SelectionState.SHADOWED) {
+        if (shadowEnabled && selectionState == SelectionState.SHADOWED) {
             viewHolder.setBackgroundColor(mTableView.getShadowColor());
 
         } else if (selectionState == SelectionState.SELECTED) {
@@ -334,7 +366,7 @@ public class SelectionHandler {
 
     public void changeColumnBackgroundColorBySelectionStatus(AbstractViewHolder viewHolder,
                                                              SelectionState selectionState) {
-        if (selectionState == SelectionState.SHADOWED) {
+        if (shadowEnabled && selectionState == SelectionState.SHADOWED) {
             viewHolder.setBackgroundColor(mTableView.getShadowColor());
 
         } else if (selectionState == SelectionState.SELECTED) {
@@ -344,11 +376,43 @@ public class SelectionHandler {
             viewHolder.setBackgroundColor(mTableView.getUnSelectedColor());
         }
     }
-    
+
+    public void changeSelectionOfRecyclerView(CellRecyclerView recyclerView, AbstractViewHolder
+            .SelectionState selectionState, @ColorInt int backgroundColor) {
+
+        LinearLayoutManager linearLayoutManager = (LinearLayoutManager) recyclerView
+                .getLayoutManager();
+
+        for (int i = linearLayoutManager.findFirstVisibleItemPosition(); i < linearLayoutManager
+                .findLastVisibleItemPosition() + 1; i++) {
+
+            AbstractViewHolder viewHolder = (AbstractViewHolder) recyclerView
+                    .findViewHolderForAdapterPosition(i);
+
+            if (viewHolder != null) {
+                if (!mTableView.isIgnoreSelectionColors()) {
+                    // Change background color
+                    viewHolder.setBackgroundColor(backgroundColor);
+                }
+
+                // Change selection status of the view holder
+                viewHolder.setSelected(selectionState);
+            }
+        }
+    }
+
     public void clearSelection() {
         unselectedRowHeader();
         unselectedCellView();
         unselectedColumnHeader();
+    }
+
+    public void setSelectedRowPosition(int row) {
+        this.mSelectedRowPosition = row;
+    }
+
+    public void setSelectedColumnPosition(int column) {
+        this.mSelectedColumnPosition = column;
     }
 
 }

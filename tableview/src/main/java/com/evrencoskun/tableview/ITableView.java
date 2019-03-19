@@ -25,7 +25,9 @@ import android.view.ViewGroup;
 import com.evrencoskun.tableview.adapter.AbstractTableAdapter;
 import com.evrencoskun.tableview.adapter.recyclerview.CellRecyclerView;
 import com.evrencoskun.tableview.filter.Filter;
+import com.evrencoskun.tableview.handler.ColumnSortHandler;
 import com.evrencoskun.tableview.handler.FilterHandler;
+import com.evrencoskun.tableview.handler.ScrollHandler;
 import com.evrencoskun.tableview.handler.SelectionHandler;
 import com.evrencoskun.tableview.layoutmanager.CellLayoutManager;
 import com.evrencoskun.tableview.layoutmanager.ColumnHeaderLayoutManager;
@@ -47,6 +49,8 @@ public interface ITableView {
     boolean isIgnoreSelectionColors();
 
     boolean isShowHorizontalSeparators();
+    
+    boolean isShowVerticalSeparators();
 
     boolean isSortable();
 
@@ -69,14 +73,24 @@ public interface ITableView {
     ITableViewListener getTableViewListener();
 
     SelectionHandler getSelectionHandler();
+    
+    ColumnSortHandler getColumnSortHandler();
 
     DividerItemDecoration getHorizontalItemDecoration();
+    
+    DividerItemDecoration getVerticalItemDecoration();
 
     SortState getSortingStatus(int column);
 
+    SortState getRowHeaderSortingStatus();
+
     void scrollToColumnPosition(int column);
 
+    void scrollToColumnPosition(int column, int offset);
+
     void scrollToRowPosition(int row);
+
+    void scrollToRowPosition(int row, int offset);
 
     void showRow(int row);
 
@@ -104,9 +118,17 @@ public interface ITableView {
 
     int getUnSelectedColor();
 
+    int getSeparatorColor();
+
     void sortColumn(int columnPosition, SortState sortState);
 
+    void sortRowHeader(SortState sortState);
+
     void remeasureColumnWidth(int column);
+
+    int getRowHeaderWidth();
+
+    void setRowHeaderWidth(int rowHeaderWidth);
 
     AbstractTableAdapter getAdapter();
 
@@ -123,4 +145,11 @@ public interface ITableView {
      * @return The FilterHandler of the TableView.
      */
     FilterHandler getFilterHandler();
+    
+    /**
+     * Retrieves the ScrollHandler of the TableView.
+     *
+     * @return The ScrollHandler of the TableView.
+     */
+    ScrollHandler getScrollHandler();
 }
